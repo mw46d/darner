@@ -6,7 +6,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 CMAKE_POLICY(SET CMP0005 NEW) # don't complain about escaping the double-quotes below around DARNER_VERSION
 
-ADD_DEFINITIONS(-Wall -Wno-return-type -O2 -g -DNDEBUG -DDARNER_VERSION="${DARNER_VERSION}")
+ADD_DEFINITIONS(-Wall -Wno-return-type -O2 -std=c++11 -g -DNDEBUG -DDARNER_VERSION="${DARNER_VERSION}")
 
 INCLUDE_DIRECTORIES(include)
 
