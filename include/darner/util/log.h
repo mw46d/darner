@@ -9,7 +9,12 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/format.hpp>
-#include <leveldb/db.h>
+
+#ifndef ROCKS_DB
+# include <leveldb/db.h>
+#else
+# include <rocksdb/db.h>
+#endif
 
 #ifdef WIN32
 // defined in wingdi.h

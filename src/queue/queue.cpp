@@ -4,8 +4,13 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 
-#include <leveldb/iterator.h>
-#include <leveldb/write_batch.h>
+#ifndef ROCKS_DB
+# include <leveldb/iterator.h>
+# include <leveldb/write_batch.h>
+#else
+# include <rocksdb/iterator.h>
+# include <rocksdb/write_batch.h>
+#endif
 
 #include "darner/util/log.h"
 
@@ -13,7 +18,11 @@ using namespace std;
 using namespace boost;
 using namespace darner;
 
+#ifndef ROCKS_DB
 using namespace leveldb;
+#else
+  using namespace rocksdb;
+#endif
 
 queue::queue(asio::io_service& ios, const string& path)
 : cmp_(new comparator()),
@@ -30,6 +39,19 @@ queue::queue(asio::io_service& ios, const string& path)
    Options options;
    options.create_if_missing = true;
    options.comparator = cmp_.get();
+
+#ifdef ROCKS_DB
+   options.allow_os_buffer = true;
+   options.max_background_flushes = 1;
+   options.max_background_compactions = 1;
+   options.max_open_files = -1;
+   options.compression = rocksdb::kNoCompression;
+
+//   options.allow_mmap_reads = true;
+//   options.allow_mmap_writes = true;
+//   options.use_adaptive_mutex = true;
+#endif
+
    DB* pdb;
    if (!DB::Open(options, path, &pdb).ok())
       throw runtime_error("can't open journal: " + path);

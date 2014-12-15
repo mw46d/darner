@@ -13,12 +13,21 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-#include <leveldb/db.h>
-#include <leveldb/comparator.h>
+#ifndef ROCKS_DB
+# include <leveldb/db.h>
+# include <leveldb/comparator.h>
+#else
+# include <rocksdb/db.h>
+# include <rocksdb/comparator.h>
+#endif
 
 namespace darner {
 
-using namespace leveldb;
+#ifndef ROCKS_DB
+    using namespace leveldb;
+#else
+  using namespace rocksdb;
+#endif
 
 /*
  * queue is a fifo queue that is O(log(queue size / cache size)) for pushing/popping.  it boasts these features:
@@ -151,10 +160,10 @@ private:
 
       key_type(char _type, id_type _id) : type(_type), id(_id) {}
 
-      key_type(const leveldb::Slice& s)
+      key_type(const Slice& s)
       : type(s.data()[sizeof(id_type)]), id(*reinterpret_cast<const id_type*>(s.data())) {}
 
-      leveldb::Slice slice() const;
+      Slice slice() const;
 
       int compare(const key_type& other) const
       {
@@ -191,15 +200,15 @@ private:
    };
 
    // compare keys as native uint64's instead of lexically
-   class comparator : public leveldb::Comparator
+   class comparator : public Comparator
    {
    public:
-      int Compare(const leveldb::Slice& a, const leveldb::Slice& b) const
+      int Compare(const Slice& a, const Slice& b) const
       {
          return key_type(a).compare(key_type(b));
       }
       const char* Name() const { return "queue::comparator"; }
-      void FindShortestSeparator(std::string*, const leveldb::Slice&) const {}
+      void FindShortestSeparator(std::string*, const Slice&) const {}
       void FindShortSuccessor(std::string*) const {}
    };
 
@@ -216,7 +225,7 @@ private:
 
    void put(const key_type& key, const std::string& value, bool sync = false)
    {
-      leveldb::WriteOptions write_options;
+      WriteOptions write_options;
       write_options.sync = sync;
       if (!journal_->Put(write_options, key.slice(), value).ok())
          throw boost::system::system_error(boost::system::errc::io_error, boost::asio::error::get_system_category());
@@ -224,18 +233,18 @@ private:
 
    void get(const key_type& key, std::string& result)
    {
-      if (!journal_->Get(leveldb::ReadOptions(), key.slice(), &result).ok())
+      if (!journal_->Get(ReadOptions(), key.slice(), &result).ok())
          throw boost::system::system_error(boost::system::errc::io_error, boost::asio::error::get_system_category());
    }
 
-   void write(leveldb::WriteBatch& batch)
+   void write(WriteBatch& batch)
    {
-      if (!journal_->Write(leveldb::WriteOptions(), &batch).ok())
+      if (!journal_->Write(WriteOptions(), &batch).ok())
          throw boost::system::system_error(boost::system::errc::io_error, boost::asio::error::get_system_category());
    }
 
    boost::scoped_ptr<comparator> cmp_;
-   boost::scoped_ptr<leveldb::DB> journal_;
+   boost::scoped_ptr<DB> journal_;
 
    // journal has queue keys and chunk keys
    // layout of queue keys in journal is:
