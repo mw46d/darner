@@ -13,6 +13,8 @@ using namespace std;
 using namespace boost;
 using namespace darner;
 
+using namespace leveldb;
+
 queue::queue(asio::io_service& ios, const string& path)
 : cmp_(new comparator()),
   queue_head_(key_type::KT_QUEUE, 0),
@@ -25,15 +27,15 @@ queue::queue(asio::io_service& ios, const string& path)
   ios_(ios),
   path_(path)
 {
-   leveldb::Options options;
+   Options options;
    options.create_if_missing = true;
    options.comparator = cmp_.get();
-   leveldb::DB* pdb;
-   if (!leveldb::DB::Open(options, path, &pdb).ok())
+   DB* pdb;
+   if (!DB::Open(options, path, &pdb).ok())
       throw runtime_error("can't open journal: " + path);
    journal_.reset(pdb);
    // get head and tail of queue
-   scoped_ptr<leveldb::Iterator> it(journal_->NewIterator(leveldb::ReadOptions()));
+   scoped_ptr<Iterator> it(journal_->NewIterator(ReadOptions()));
    it->Seek(key_type(key_type::KT_QUEUE, 0).slice());
    if (it->Valid())
    {
@@ -83,10 +85,10 @@ void queue::destroy()
    journal_.reset();
    boost::filesystem::rename(path_, new_path);
 
-   leveldb::DB* pdb;
-   leveldb::Options options;
+   DB* pdb;
+   Options options;
    options.comparator = cmp_.get();
-   if (!leveldb::DB::Open(options, new_path, &pdb).ok())
+   if (!DB::Open(options, new_path, &pdb).ok())
       throw runtime_error("can't open journal: " + path_); // should never happen, but fatal if it does
 
    journal_.reset(pdb);
@@ -174,7 +176,7 @@ void queue::pop_end(bool erase, id_type id, const header_type& header)
 {
    if (erase)
    {
-      leveldb::WriteBatch batch;
+      WriteBatch batch;
       batch.Delete(key_type(key_type::KT_QUEUE, id).slice());
 
       if (header.end > 1) // multi-chunk?
@@ -224,7 +226,7 @@ void queue::read_chunk(string& result, id_type chunk_key)
 
 void queue::erase_chunks(const header_type& header)
 {
-   leveldb::WriteBatch batch;
+   WriteBatch batch;
 
    for (key_type k(key_type::KT_CHUNK, header.beg); k.id != header.end; ++k.id)
       batch.Delete(k.slice());
@@ -258,7 +260,7 @@ void queue::waiter_wakeup(const system::error_code& e, ptr_list<queue::waiter>::
 
 void queue::compact()
 {
-   scoped_ptr<leveldb::Iterator> it(journal_->NewIterator(leveldb::ReadOptions()));
+   scoped_ptr<Iterator> it(journal_->NewIterator(ReadOptions()));
 
    // compact queue range first
    key_type kq_beg(key_type::KT_QUEUE, 0);
@@ -267,8 +269,8 @@ void queue::compact()
       return;
 
    key_type kq_end(it->key());
-   --kq_end.id; // leveldb::CompactRange is inclusive [beg, end]
-   leveldb::Slice sq_beg = kq_beg.slice(), sq_end = kq_end.slice();
+   --kq_end.id; // CompactRange is inclusive [beg, end]
+   Slice sq_beg = kq_beg.slice(), sq_end = kq_end.slice();
    journal_->CompactRange(&sq_beg, &sq_end);
 
    // now compact chunk range
@@ -279,7 +281,7 @@ void queue::compact()
 
    key_type kc_end(it->key());
    --kc_end.id;
-   leveldb::Slice sc_beg = kc_beg.slice(), sc_end = kc_end.slice();
+   Slice sc_beg = kc_beg.slice(), sc_end = kc_end.slice();
    journal_->CompactRange(&sc_beg, &sc_end);
    log::INFO("queue<%1%>: compacted queue range to %2%, chunk range to %3%", path_, kq_end.id, kc_end.id);
 }
@@ -290,10 +292,10 @@ void queue::header_type::str(std::string& out) const
    out = string(reinterpret_cast<const char *>(this), sizeof(header_type)) + '\1' + '\0';
 }
 
-leveldb::Slice queue::key_type::slice() const
+Slice queue::key_type::slice() const
 {
    *reinterpret_cast<id_type*>(&buf_[0]) = id;
    buf_[sizeof(id_type)] = type;
-   return leveldb::Slice(&buf_[0], sizeof(buf_));
+   return Slice(&buf_[0], sizeof(buf_));
 }
 

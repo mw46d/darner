@@ -18,6 +18,8 @@
 
 namespace darner {
 
+using namespace leveldb;
+
 /*
  * queue is a fifo queue that is O(log(queue size / cache size)) for pushing/popping.  it boasts these features:
  *
