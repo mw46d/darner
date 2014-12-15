@@ -1,5 +1,6 @@
 #include "darner/net/handler.h"
 
+#include <cinttypes>
 #include <cstdio>
 
 #include <boost/array.hpp>
@@ -212,7 +213,7 @@ void handler::get()
    }
 
    header_buf_.resize(21 + req_.queue.size()); // 21 = len("VALUE  0 4294967296\r\n")
-   header_buf_.resize(::sprintf(&header_buf_[0], "VALUE %s 0 %lu\r\n", req_.queue.c_str(), pop_stream_.size()));
+   header_buf_.resize(::sprintf(&header_buf_[0], "VALUE %s 0 %" PRIu64 "\r\n", req_.queue.c_str(), pop_stream_.size()));
 
    if (pop_stream_.tell() == pop_stream_.size())
    {
