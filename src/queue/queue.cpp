@@ -4,12 +4,12 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 
-#ifndef ROCKS_DB
-# include <leveldb/iterator.h>
-# include <leveldb/write_batch.h>
+#ifdef ROCKSDB
+#  include <rocksdb/iterator.h>
+#  include <rocksdb/write_batch.h>
 #else
-# include <rocksdb/iterator.h>
-# include <rocksdb/write_batch.h>
+#  include <leveldb/iterator.h>
+#  include <leveldb/write_batch.h>
 #endif
 
 #include "darner/util/log.h"
@@ -17,12 +17,6 @@
 using namespace std;
 using namespace boost;
 using namespace darner;
-
-#ifndef ROCKS_DB
-using namespace leveldb;
-#else
-  using namespace rocksdb;
-#endif
 
 queue::queue(asio::io_service& ios, const string& path)
 : cmp_(new comparator()),
@@ -40,7 +34,7 @@ queue::queue(asio::io_service& ios, const string& path)
    options.create_if_missing = true;
    options.comparator = cmp_.get();
 
-#ifdef ROCKS_DB
+#ifdef ROCKSDB
    options.allow_os_buffer = true;
    options.max_background_flushes = 1;
    options.max_background_compactions = 1;

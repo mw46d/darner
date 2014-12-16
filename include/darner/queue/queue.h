@@ -13,20 +13,20 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-#ifndef ROCKS_DB
-# include <leveldb/db.h>
-# include <leveldb/comparator.h>
-#else
+#ifdef ROCKSDB
 # include <rocksdb/db.h>
 # include <rocksdb/comparator.h>
+#else
+# include <leveldb/db.h>
+# include <leveldb/comparator.h>
 #endif
 
 namespace darner {
 
-#ifndef ROCKS_DB
-    using namespace leveldb;
+#ifdef ROCKSDB
+    using namespace rocksdb;
 #else
-  using namespace rocksdb;
+    using namespace leveldb;
 #endif
 
 /*
