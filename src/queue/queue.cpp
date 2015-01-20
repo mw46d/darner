@@ -4,6 +4,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include <unistd.h>  // sysconf() - get CPU count
+
 #ifdef ROCKSDB
 #  include <rocksdb/iterator.h>
 #  include <rocksdb/write_batch.h>
@@ -39,11 +41,15 @@ queue::queue(asio::io_service& ios, const string& path)
    options.max_background_flushes = 1;
    options.max_background_compactions = 1;
    options.max_open_files = -1;
-   options.compression = rocksdb::kNoCompression;
 
-//   options.allow_mmap_reads = true;
-//   options.allow_mmap_writes = true;
-//   options.use_adaptive_mutex = true;
+   //options.compression = rocksdb::kNoCompression;
+   options.compression = rocksdb::kSnappyCompression;
+   options.allow_mmap_reads = true;
+   options.allow_mmap_writes = true;
+   options.use_adaptive_mutex = true;
+
+   long cpus = sysconf(_SC_NPROCESSORS_ONLN);  // get # of online cores
+   options.IncreaseParallelism(cpus > 0 ? cpus : 1);
 #endif
 
    DB* pdb;
