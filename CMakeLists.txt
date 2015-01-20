@@ -8,19 +8,21 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 CMAKE_POLICY(SET CMP0005 NEW) # don't complain about escaping the double-quotes below around DARNER_VERSION
 
-ADD_DEFINITIONS(-Wall -Wno-return-type -O2 -std=c++11 -g -DNDEBUG -DDARNER_VERSION="${DARNER_VERSION}")
+#May be needed on Mac OS -stdlib=libstdc++
+SET(OPT_FLAGS "-O2 -march=core2 -mtune=core2 -fno-omit-frame-pointer -momit-leaf-frame-pointer -fno-builtin-memcmp")
+ADD_DEFINITIONS(-Wall -Wno-return-type -std=c++11 ${OPT_FLAGS} -g -DNDEBUG -DDARNER_VERSION="${DARNER_VERSION}" -DBOOST_ALL_NO_LIB -DBOOST_SYSTEM_NO_LIB)
 
 IF(DARNER_DB)
     ADD_DEFINITIONS(-D${DARNER_DB})
     IF(DARNER_DB STREQUAL "ROCKSDB")
-        SET(DB_LIBRARIES rocksdb snappy)
+        SET(DB_LIBRARIES rocksdb.a snappy.a)
     ENDIF(DARNER_DB STREQUAL "ROCKSDB")
 ENDIF(DARNER_DB)
 
 INCLUDE_DIRECTORIES(include)
 
 IF(NOT DB_LIBRARIES)
-    SET(DB_LIBRARIES leveldb snappy)
+    SET(DB_LIBRARIES leveldb.a snappy.a)
 ENDIF(NOT DB_LIBRARIES)
 
 
@@ -49,10 +51,17 @@ ADD_EXECUTABLE(test
                tests/main
                )
 
-FIND_PACKAGE(Boost 1.40.0 COMPONENTS thread system program_options unit_test_framework filesystem)
+#To set Boost_UNIT_TEST_FRAMEWORK_LIBRARY for test
+FIND_PACKAGE(Boost 1.40.0 COMPONENTS unit_test_framework)
 
-TARGET_LINK_LIBRARIES(darner pthread jemalloc ${Boost_LIBRARIES} ${DB_LIBRARIES})
+#Static link prebuilt boost libs
+SET(Boost_USE_STATIC_LIBS ON)
+FIND_PACKAGE(Boost 1.40.0 COMPONENTS thread system program_options filesystem)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+
+TARGET_LINK_LIBRARIES(darner jemalloc ${Boost_LIBRARIES} ${DB_LIBRARIES})
 TARGET_LINK_LIBRARIES(db ${Boost_LIBRARIES})
-TARGET_LINK_LIBRARIES(test pthread jemalloc ${Boost_LIBRARIES} ${DB_LIBRARIES})
+TARGET_LINK_LIBRARIES(test jemalloc ${Boost_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${DB_LIBRARIES})
 
 INSTALL(TARGETS darner DESTINATION bin)
+MESSAGE(STATUS "Use 'make install/strip' when installing to strip all debug info")
