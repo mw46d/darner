@@ -15,7 +15,7 @@ ADD_DEFINITIONS(-Wall -Wno-return-type -std=c++11 ${OPT_FLAGS} -g -DNDEBUG -DDAR
 IF(DARNER_DB)
     ADD_DEFINITIONS(-D${DARNER_DB})
     IF(DARNER_DB STREQUAL "ROCKSDB")
-        SET(DB_LIBRARIES rocksdb.a snappy.a)
+        SET(DB_LIBRARIES rocksdb.a snappy.a libz.a libbz2.a)
     ENDIF(DARNER_DB STREQUAL "ROCKSDB")
 ENDIF(DARNER_DB)
 
