@@ -65,5 +65,9 @@ request_grammar::request_grammar()
       >> *get_option
       >> -lit(' '); // be permissive to clients inserting spaces
 
-   start = (stats | version | destroy | flush | flush_all | set | get) >> eol;
+   fanout =
+      lit("fanout ")   [phoenix::ref(req.type) = request::RT_FANOUT]
+      >> key_name      [phoenix::ref(req.queue) = _1];
+
+   start = (stats | version | destroy | flush | flush_all | set | get | fanout) >> eol;
 }

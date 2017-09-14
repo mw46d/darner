@@ -1,9 +1,11 @@
 #include "darner/net/handler.h"
+#include "darner/util/log.h"
 
 #include <cinttypes>
 #include <cstdio>
 
 #include <boost/array.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 using namespace boost;
@@ -69,6 +71,7 @@ void handler::parse_request(const system::error_code& e, size_t bytes_transferre
    case request::RT_FLUSH_ALL: flush_all();     break;
    case request::RT_SET:       ++stats_.cmd_sets; set(); break;
    case request::RT_GET:       ++stats_.cmd_gets; get(); break;
+   case request::RT_FANOUT:    create_fanout(); break;
    }
 }
 
@@ -284,4 +287,31 @@ void handler::get_on_write_chunk(const boost::system::error_code& e, size_t byte
 
       async_write(socket_, buffer(buf_), bind(&handler::get_on_write_chunk, shared_from_this(), _1, _2));
    }
+}
+
+void handler::create_fanout()
+{
+   // log::INFO("handler::create_fanout(%s)", req_.queue);
+
+   std::vector<std::string> strs;
+   boost::split(strs, req_.queue, boost::is_any_of("+"));
+
+   if (strs.size() > 1)
+   {
+      boost::shared_ptr<queue> parent = queues_[strs[0]];
+      // log::INFO("  parent= %s %p", strs[0], parent);
+
+      std::vector<std::string> children_names;
+      boost::split(children_names, strs[1], boost::is_any_of(","));
+
+      for (std::vector<std::string>::const_iterator i = children_names.begin(); i != children_names.end(); i++)
+      {
+         boost::shared_ptr<queue> child = queues_[*i];
+         // log::INFO("    child= %s %p", *i, child);
+
+         parent->add_child(*i, child);
+      }
+   }
+
+   return end("FANOUT CREATED\r\n");
 }

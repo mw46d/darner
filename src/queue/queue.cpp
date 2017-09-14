@@ -52,6 +52,7 @@ queue::queue(asio::io_service& ios, const string& path)
    options.IncreaseParallelism(cpus > 0 ? cpus : 1);
 #endif
 
+   children = NULL;
    DB* pdb;
    if (!DB::Open(options, path, &pdb).ok())
       throw runtime_error("can't open journal: " + path);
@@ -76,6 +77,7 @@ queue::queue(asio::io_service& ios, const string& path)
          chunks_head_.id = key_type(it->key()).id + 1;
       }
    }
+
 }
 
 queue::~queue()

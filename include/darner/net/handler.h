@@ -62,6 +62,8 @@ private:
 
    void get();
 
+   void create_fanout();
+
    // set loop:
 
    void set_on_read_chunk(const boost::system::error_code& e, size_t bytes_transferred);

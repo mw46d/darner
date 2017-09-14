@@ -19,7 +19,8 @@ struct request
       RT_FLUSH     = 4,
       RT_FLUSH_ALL = 5,
       RT_SET       = 6,
-      RT_GET       = 7
+      RT_GET       = 7,
+      RT_FANOUT    = 8
    };
 
    request_type type;
@@ -38,7 +39,7 @@ struct request_grammar : boost::spirit::qi::grammar<std::string::const_iterator>
    request_grammar();
    request req;
    boost::spirit::qi::rule<std::string::const_iterator, std::string()> key_name;
-   boost::spirit::qi::rule<std::string::const_iterator> stats, version, destroy, flush, flush_all, set_option, set, get_option, get, start;
+   boost::spirit::qi::rule<std::string::const_iterator> stats, version, destroy, flush, flush_all, set_option, set, get_option, get, fanout, start;
 };
 
 // grammar are expensive to construct.  to be thread-safe, let's make one grammar per thread.

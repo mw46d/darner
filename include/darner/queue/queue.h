@@ -1,6 +1,8 @@
 #ifndef __DARNER_QUEUE_H__
 #define __DARNER_QUEUE_H__
 
+#include "darner/util/log.h"
+
 #include <set>
 #include <string>
 #include <sstream>
@@ -22,6 +24,8 @@
 #endif
 
 namespace darner {
+
+class queue_map;
 
 #ifdef ROCKSDB
     using namespace rocksdb;
@@ -49,6 +53,9 @@ public:
    typedef boost::uint64_t id_type;
    typedef boost::uint64_t size_type;
    typedef boost::function<void (const boost::system::error_code& error)> wait_callback;
+   typedef std::map<std::string, boost::shared_ptr<queue> > children_type;
+   typedef children_type::iterator children_iterator;
+   typedef children_type::const_iterator const_children_iterator;
 
    // open or create the queue at the path
    queue(boost::asio::io_service& ios, const std::string& path);
@@ -67,6 +74,24 @@ public:
 
    // writes out stats (stuff like queue count) to a stream
    void write_stats(const std::string& name, std::ostringstream& out) const;
+
+   void add_child(const std::string& name, boost::shared_ptr<queue> child) {
+      if (children == NULL)
+      {
+         // log::INFO("queue::add_child add new children map");
+
+         children = new children_type();
+      }
+
+      children_iterator it = children->find(name);
+
+      if (it == children->end())
+      {
+         // log::INFO("queue::add_child   add new child= %s", name);
+
+         children->insert(children_type::value_type(name, child));
+      }
+   }
 
 protected:
 
@@ -147,6 +172,8 @@ protected:
     * removes all chunks referred to by a header.  use this when aborting a multi-chunk push.
     */
    void erase_chunks(const header_type& header);
+
+   children_type *children = NULL;
 
 private:
 
